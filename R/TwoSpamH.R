@@ -2,13 +2,13 @@
 #'
 #' This function performs the 2SpamH algorithm on a ceratin variable in the input data
 #'
-#' @param data A data frame contains the variables to be labelled and the variables on which principle component analysis is performed (PC vars).
-#' @param variable A variable name or the position indexes of the variable to be labelled.
+#' @param data A data frame contains the variable to be labelled and the variables on which principle component analysis is performed (PC vars).
+#' @param variable A variable name or the position index of the variable to be labelled.
 #' @param PC.vars A list object, such that each element of this list contains the vectors of either the name of the PC vars or the position indexes of the PC vars in the data frame.
 #' @param step2.var A vector of variable names to be added into the step 2 KNN feature space.
 #' @param imp.method A function which serves as the imputation method for missing data in PC vars. This function should take a vector with missing and retun a vector without.
-#' @param thresholds A list of which the first element contains the 'low' quantile thresholds for each group of PC var, and the second for 'high'. Each element in it should be a vector eitehr of the same length as the number of PC var groups or 1.
-#' @param num.neighbor Number of the neibors considered by each unlabelled data points in stage 2
+#' @param thresholds A list of which the first element contains the 'low' quantile thresholds for each group of PC var, and the second for 'high'. Each element in it should be a vector either of the same length as the number of PC var groups or 1.
+#' @param num.neighbor Number of the neighbors considered by each unlabelled data points in stage 2
 #' @param check.cor Whether the highly correlated variables should be removed when performing stage 2 of the TSknn. If no, input should be NULL. If yes, input shou be the correlation threshold for variables to be removed.
 #' @param plot.data If TRUE, the outputted results are for plotting. If FALSE, the function outputs the original data frame where the filtered variable is labelled with extra NAs.
 #' @param seed The seed to be set, default is NULL.
@@ -40,6 +40,23 @@ TwoSpamH = function(data,
                   thresholds = list(low = c(0.3), high = c(0.7)),
                   num.neighbor = 5,
                   check.cor = 0.8, plot.data = F, seed = NULL){
+  
+  if (!(length(intersect(variable,step2.var))==0))
+    stop('There should be no overlap between step2.var and the variable to be labelled')
+  if (!(length(intersect(PC.vars,variable))==0))
+    stop('There should be no overlap between PC.vars and the variable to be labelled')
+  if (!(length(intersect(PC.vars,step2.var))==0))
+    stop('There should be no overlap between PC.vars and step2.var')
+  if (any(!is.numeric(thresholds$high)) || any(!is.numeric(thresholds$low))) 
+    stop('threshold values must be numerical')
+  if (any(thresholds$high < 0) || any(thresholds$high > 1) || any(thresholds$low < 0) || any(thresholds$low > 1)) 
+    stop('threshold values must be inside [0,1]')
+  if (!((length(thresholds$low) == 1 || length(thresholds$low) == length(PC.vars)) && (length(thresholds$high) == 1 || length(thresholds$high) == length(PC.vars)))) 
+    stop('thresholds should be either the same length as the number of PC.var groups or 1')
+  if (!(is.numeric(num.neighbor) && (num.neighbor%%1==0) && (num.neighbor > 1))) 
+    stop('num.neighbor is not a positive integer')
+  if (!(is.numeric(check.cor) | is.null(check.cor))) 
+    stop('check.cor is not numeric or NULL')
 
   set.seed(seed)
 
